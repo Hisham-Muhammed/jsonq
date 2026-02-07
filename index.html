@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Match Stats & Boosters</title>
+    <title>Match Stats & Boosters Pro</title>
     <style>
         :root {
             --primary: #1e3a8a;
@@ -18,7 +18,7 @@
         /* Match Setup */
         .match-setup { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 15px; margin-bottom: 20px; background: #fff; border: 1px solid #e2e8f0; padding: 15px; border-radius: 12px; }
         .team-config { display: flex; flex-direction: column; gap: 5px; }
-        .team-config input { padding: 8px; font-weight: 800; border: 2px solid #cbd5e1; border-radius: 6px; text-align: center; text-transform: uppercase; }
+        .team-config input { padding: 8px; font-weight: 800; border: 2px solid #cbd5e1; border-radius: 6px; text-align: center; text-transform: uppercase; width: 100%; box-sizing: border-box; }
         .vs-circle { background: var(--primary); color: white; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; border-radius: 50%; font-weight: 900; }
 
         /* Team Tabs */
@@ -30,19 +30,21 @@
         .selection-zone { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px; background: #f8fafc; padding: 15px; border-radius: 10px; }
         .input-group { display: flex; flex-direction: column; gap: 4px; }
         label { font-size: 0.7rem; font-weight: 800; color: #64748b; text-transform: uppercase; }
-        select, input[type="number"] { padding: 10px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 0.95rem; }
+        select, input[type="number"] { padding: 10px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 0.95rem; width: 100%; box-sizing: border-box; }
 
         /* Boosters */
         .booster-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 8px; margin-bottom: 20px; padding: 12px; background: #fffbeb; border: 1px solid #fde68a; border-radius: 10px; }
         .booster-item { display: flex; align-items: center; gap: 8px; font-size: 0.8rem; font-weight: 600; cursor: pointer; }
 
         /* Stats Grid */
-        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 10px; margin-bottom: 15px; }
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; margin-bottom: 15px; }
         .checkbox-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; margin-bottom: 20px; }
 
         /* Points Bar */
-        .points-bar { background: var(--primary); color: white; padding: 15px; border-radius: 10px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .points-bar { background: var(--primary); color: white; padding: 15px; border-radius: 10px; display: flex; flex-direction: column; gap: 5px; margin-bottom: 20px; }
+        .points-header { display: flex; justify-content: space-between; align-items: center; }
         .points-val { font-size: 2rem; font-weight: 900; color: #60a5fa; }
+        .sr-display { font-size: 0.8rem; color: #94a3b8; font-weight: 600; }
 
         /* Actions */
         .actions { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
@@ -52,9 +54,9 @@
 
         /* Log */
         .log-section { margin-top: 30px; border-top: 2px solid #f1f5f9; padding-top: 20px; }
-        .log-list { display: flex; flex-direction: column; gap: 8px; }
-        .log-entry { display: flex; justify-content: space-between; padding: 10px; background: #fff; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 0.85rem; }
-        .log-tag { font-size: 0.7rem; background: #dbeafe; padding: 2px 6px; border-radius: 4px; margin-left: 5px; }
+        .log-list { display: flex; flex-direction: column; gap: 8px; max-height: 400px; overflow-y: auto; }
+        .log-entry { display: flex; justify-content: space-between; padding: 10px; background: #fff; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 0.85rem; align-items: center; }
+        .log-tag { font-size: 0.65rem; background: #dbeafe; padding: 2px 6px; border-radius: 4px; margin-left: 3px; font-weight: 700; color: #1e40af; }
     </style>
 </head>
 <body>
@@ -104,14 +106,14 @@
     <!-- Stats -->
     <div class="stats-grid">
         <div class="input-group"><label>Role</label><select id="role"><option value="bat">Bat/AR/WK</option><option value="bowl">Pure Bowler</option></select></div>
-        <div class="input-group"><label>Runs</label><input type="number" id="runs" value="0"></div>
-        <div class="input-group"><label>Balls</label><input type="number" id="balls" value="0"></div>
-        <div class="input-group"><label>4s/6s</label><div style="display:flex;gap:5px"><input type="number" id="fours" value="0" style="width:50%"><input type="number" id="sixes" value="0" style="width:50%"></div></div>
+        <div class="input-group"><label>Runs Scored</label><input type="number" id="runs" value="0"></div>
+        <div class="input-group"><label>Balls Faced</label><input type="number" id="balls" value="0"></div>
+        <div class="input-group"><label>4s/6s</label><div style="display:flex;gap:5px"><input type="number" id="fours" value="0" placeholder="4s"><input type="number" id="sixes" value="0" placeholder="6s"></div></div>
     </div>
     <div class="stats-grid">
         <div class="input-group"><label>Wickets</label><input type="number" id="wkts" value="0"></div>
-        <div class="input-group"><label>Overs</label><input type="number" id="overs" step="0.1" value="0"></div>
-        <div class="input-group"><label>Dots</label><input type="number" id="dots" value="0"></div>
+        <div class="input-group"><label>Overs Bowled</label><input type="number" id="overs" step="0.1" value="0"></div>
+        <div class="input-group"><label>Dot Balls</label><input type="number" id="dots" value="0"></div>
         <div class="input-group"><label>Maidens</label><input type="number" id="maidens" value="0"></div>
     </div>
 
@@ -124,8 +126,11 @@
     </div>
 
     <div class="points-bar">
-        <span><strong id="displayName">...</strong>'s Points</span>
-        <span class="points-val" id="totalPts">0</span>
+        <div class="points-header">
+            <span><strong id="displayName">...</strong>'s Points</span>
+            <span class="points-val" id="totalPts">0</span>
+        </div>
+        <div class="sr-display" id="srDisplay">Strike Rate: 0.00</div>
     </div>
 
     <div class="actions">
@@ -168,8 +173,6 @@
         document.getElementById('tab1').className = id === 1 ? 'tab-btn active' : 'tab-btn';
         document.getElementById('tab2').className = id === 2 ? 'tab-btn active' : 'tab-btn';
         document.getElementById('countryLabel').innerText = `Select Team ${id} Country`;
-        
-        // Restore country if already selected for this team
         document.getElementById('countrySelect').value = countryMapping[id];
         loadPlayers();
     }
@@ -197,56 +200,118 @@
         const dots = parseInt(document.getElementById('dots').value) || 0;
         const role = document.getElementById('role').value;
 
-        // Base
-        p += runs + fours + (sixes * 3) + (wkts * 25) + dots;
+        // Strike Rate Calculation
+        let sr = 0;
+        if (balls > 0) {
+            sr = (runs / balls) * 100;
+        }
+        document.getElementById('srDisplay').innerText = `Strike Rate: ${sr.toFixed(2)}`;
+
+        // Base Points
+        p += runs + (fours * 1) + (sixes * 2) + (wkts * 25) + dots;
+        
+        // Milestones
         if (runs >= 50) p += 10;
+        if (runs >= 100) p += 20;
         if (wkts >= 3) p += 10;
+        if (wkts >= 5) p += 20;
+
+        // Bonuses
         if (document.getElementById('xi').checked) p += 5;
         if (document.getElementById('mom').checked) p += 50;
+        if (document.getElementById('win').checked) p += 10;
+        if (document.getElementById('duck').checked) p -= 15;
+
+        // Strike Rate Bonus/Penalty
+        if (balls >= 10) {
+            if (sr > 200) p += 15;
+            else if (sr > 150) p += 10;
+            else if (sr < 100) p -= 10;
+        }
 
         // Boosters
         if (document.getElementById('bMega').checked) {
-            p += (dots * 10) + ((fours + sixes) * 10);
+            p += (dots * 5) + ((fours + sixes) * 5);
         }
         if (document.getElementById('b2x').checked) p *= 2;
         if (document.getElementById('bVacc').checked && p < 0) p = 0;
         if (document.getElementById('bRev').checked) p = 0;
 
         document.getElementById('totalPts').innerText = p;
-        return p;
+        return { p, sr };
     }
 
     function save() {
         const name = document.getElementById('playerSelect').value;
+        const country = document.getElementById('countrySelect').value;
         if (!name) return;
 
-        const pts = calc();
-        const boosts = [];
-        if(document.getElementById('b2x').checked) boosts.push('2x');
-        if(document.getElementById('bMega').checked) boosts.push('Mega');
-        if(document.getElementById('bVacc').checked) boosts.push('Vacc');
-        if(document.getElementById('bRev').checked) boosts.push('REV');
+        const { p, sr } = calc();
+        
+        // Collect all statistics
+        const statsObj = {
+            name: name,
+            country: country,
+            teamCode: document.getElementById(`t${activeTeam}_code`).value.toUpperCase(),
+            finalPoints: p,
+            role: document.getElementById('role').value,
+            batting: {
+                runs: parseInt(document.getElementById('runs').value) || 0,
+                balls: parseInt(document.getElementById('balls').value) || 0,
+                fours: parseInt(document.getElementById('fours').value) || 0,
+                sixes: parseInt(document.getElementById('sixes').value) || 0,
+                strikeRate: parseFloat(sr.toFixed(2))
+            },
+            bowling: {
+                wickets: parseInt(document.getElementById('wkts').value) || 0,
+                overs: parseFloat(document.getElementById('overs').value) || 0,
+                dots: parseInt(document.getElementById('dots').value) || 0,
+                maidens: parseInt(document.getElementById('maidens').value) || 0
+            },
+            status: {
+                playingXI: document.getElementById('xi').checked,
+                out: document.getElementById('out').checked,
+                wonMatch: document.getElementById('win').checked,
+                mom: document.getElementById('mom').checked,
+                lastOverDuck: document.getElementById('duck').checked
+            },
+            boosters: {
+                "2x": document.getElementById('b2x').checked,
+                "Mega": document.getElementById('bMega').checked,
+                "Vacc": document.getElementById('bVacc').checked,
+                "Reverse": document.getElementById('bRev').checked,
+                "Companion": document.getElementById('bComp').checked,
+                "Shadow": document.getElementById('bShad').checked
+            }
+        };
 
-        savedPlayers.push({
-            name,
-            team: document.getElementById(`t${activeTeam}_code`).value,
-            points: pts,
-            boosts: boosts
-        });
+        savedPlayers.push(statsObj);
 
-        // UI Feedback
+        // UI Log
         const log = document.getElementById('logList');
         const entry = document.createElement('div');
         entry.className = 'log-entry';
-        entry.innerHTML = `<span><strong>${name}</strong> (${savedPlayers[savedPlayers.length-1].team})</span> 
-                           <span>${boosts.map(b=>`<span class="log-tag">${b}</span>`).join('')} <strong>${pts}</strong></span>`;
+        
+        const activeBoosts = Object.keys(statsObj.boosters).filter(k => statsObj.boosters[k]);
+        
+        entry.innerHTML = `
+            <div>
+                <strong>${name}</strong> <small>(${statsObj.teamCode})</small>
+                <div>${activeBoosts.map(b => `<span class="log-tag">${b}</span>`).join('')}</div>
+            </div> 
+            <div style="text-align:right">
+                <div style="font-size: 1.1rem; font-weight: 800; color: var(--primary)">${p} pts</div>
+                <small style="color: #64748b">SR: ${sr.toFixed(1)}</small>
+            </div>`;
         log.prepend(entry);
         
         document.getElementById('count').innerText = savedPlayers.length;
         
-        // Reset inputs
-        document.querySelectorAll('input[type="number"]').forEach(i => i.value = 0);
-        document.querySelectorAll('.booster-grid input').forEach(i => i.checked = false);
+        // Reset inputs (except team/country)
+        document.querySelectorAll('.stats-grid input, .checkbox-grid input, .booster-grid input').forEach(i => {
+            if (i.type === "number") i.value = 0;
+            if (i.type === "checkbox" && i.id !== 'xi') i.checked = false;
+        });
         calc();
     }
 
@@ -257,15 +322,22 @@
     }
 
     function download() {
-        if (savedPlayers.length === 0) return alert("Add players first!");
-        const blob = new Blob([JSON.stringify(savedPlayers, null, 2)], { type: 'application/json' });
+        if (savedPlayers.length === 0) return alert("Add at least one player before downloading!");
+        const dataStr = JSON.stringify(savedPlayers, null, 2);
+        const blob = new Blob([dataStr], { type: 'application/json' });
         const a = document.createElement('a');
         a.href = URL.createObjectURL(blob);
         a.download = document.getElementById('fnLabel').innerText;
+        document.body.appendChild(a);
         a.click();
+        document.body.removeChild(a);
     }
 
-    document.querySelectorAll('input, select').forEach(el => el.oninput = calc);
+    // Real-time calculation on any input change
+    document.querySelectorAll('input, select').forEach(el => {
+        el.addEventListener('input', calc);
+    });
+
     init();
 </script>
 </body>
