@@ -3,109 +3,340 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Match Stats & Boosters Pro</title>
+    <title>Tournament Stats Pro</title>
     <style>
         :root {
-            --primary: #1e3a8a;
-            --secondary: #3b82f6;
-            --accent: #10b981;
-            --danger: #ef4444;
-            --bg: #f1f5f9;
+            --primary: #1e3a8a; --secondary: #3b82f6; --accent: #10b981; --danger: #ef4444; --bg: #f1f5f9;
         }
-        body { font-family: 'Inter', system-ui, sans-serif; background: var(--bg); margin: 0; padding: 10px; color: #1e293b; }
-        .container { max-width: 1000px; margin: auto; background: white; padding: 20px; border-radius: 16px; box-shadow: 0 10px 30px rgba(0,0,0,0.08); }
+        body { font-family: 'Inter', system-ui, sans-serif; background: var(--bg); margin: 0; padding: 10px; color: #1e293b; font-size: 14px; }
+        .container { max-width: 1100px; margin: auto; background: white; padding: 20px; border-radius: 16px; box-shadow: 0 10px 30px rgba(0,0,0,0.08); }
         
-        /* Match Setup */
-        .match-setup { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 15px; margin-bottom: 20px; background: #fff; border: 1px solid #e2e8f0; padding: 15px; border-radius: 12px; }
-        .team-config { display: flex; flex-direction: column; gap: 5px; }
-        .team-config input { padding: 8px; font-weight: 800; border: 2px solid #cbd5e1; border-radius: 6px; text-align: center; text-transform: uppercase; width: 100%; box-sizing: border-box; }
-        .vs-circle { background: var(--primary); color: white; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; border-radius: 50%; font-weight: 900; }
+        .header-grid { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 15px; margin-bottom: 20px; background: #fff; border: 1px solid #e2e8f0; padding: 15px; border-radius: 12px; }
+        .team-cfg { display: flex; flex-direction: column; gap: 4px; }
+        .team-cfg input { padding: 8px; font-weight: 800; border: 2px solid #cbd5e1; border-radius: 6px; text-align: center; text-transform: uppercase; width: 100%; box-sizing: border-box; }
+        .vs-badge { background: var(--primary); color: white; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; border-radius: 50%; font-weight: 900; }
 
-        /* Team Tabs */
-        .team-tabs { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px; }
-        .tab-btn { padding: 12px; border: 2px solid #e2e8f0; border-radius: 10px; background: #f8fafc; cursor: pointer; font-weight: 700; transition: 0.2s; text-align: center; }
-        .tab-btn.active { border-color: var(--secondary); background: #eff6ff; color: var(--primary); }
+        .tabs { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px; }
+        .tab { padding: 12px; border: 2px solid #e2e8f0; border-radius: 10px; background: #f8fafc; cursor: pointer; font-weight: 700; text-align: center; }
+        .tab.active { border-color: var(--secondary); background: #eff6ff; color: var(--primary); }
 
-        /* Selectors */
-        .selection-zone { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px; background: #f8fafc; padding: 15px; border-radius: 10px; }
-        .input-group { display: flex; flex-direction: column; gap: 4px; }
-        label { font-size: 0.7rem; font-weight: 800; color: #64748b; text-transform: uppercase; }
-        select, input[type="number"] { padding: 10px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 0.95rem; width: 100%; box-sizing: border-box; }
+        .section-title { font-weight: 800; font-size: 0.75rem; color: #64748b; text-transform: uppercase; margin: 15px 0 8px; border-bottom: 1px solid #f1f5f9; padding-bottom: 4px; display: flex; justify-content: space-between; }
+        
+        .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+        .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+        .grid-auto { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 8px; }
 
-        /* Boosters */
-        .booster-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 8px; margin-bottom: 20px; padding: 12px; background: #fffbeb; border: 1px solid #fde68a; border-radius: 10px; }
-        .booster-item { display: flex; align-items: center; gap: 8px; font-size: 0.8rem; font-weight: 600; cursor: pointer; }
+        .input-box { display: flex; flex-direction: column; gap: 4px; }
+        label { font-size: 0.7rem; font-weight: 700; color: #475569; }
+        select, input { padding: 10px; border: 1px solid #cbd5e1; border-radius: 8px; }
 
-        /* Stats Grid */
-        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; margin-bottom: 15px; }
-        .checkbox-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; margin-bottom: 20px; }
+        .booster-zone { background: #fffbeb; border: 1px solid #fde68a; padding: 12px; border-radius: 10px; }
+        .check-item { display: flex; align-items: center; gap: 6px; font-size: 0.8rem; cursor: pointer; }
 
-        /* Points Bar */
-        .points-bar { background: var(--primary); color: white; padding: 15px; border-radius: 10px; display: flex; flex-direction: column; gap: 5px; margin-bottom: 20px; }
-        .points-header { display: flex; justify-content: space-between; align-items: center; }
-        .points-val { font-size: 2rem; font-weight: 900; color: #60a5fa; }
-        .sr-display { font-size: 0.8rem; color: #94a3b8; font-weight: 600; }
-
-        /* Actions */
-        .actions { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
-        .btn { padding: 15px; border: none; border-radius: 10px; font-weight: 800; cursor: pointer; font-size: 1rem; transition: 0.2s; }
+        .pts-panel { background: var(--primary); color: white; padding: 20px; border-radius: 12px; display: flex; justify-content: space-between; align-items: center; margin: 20px 0; }
+        .pts-val { font-size: 2.5rem; font-weight: 900; color: #60a5fa; }
+        
+        .btn-row { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+        .btn { padding: 16px; border: none; border-radius: 10px; font-weight: 800; cursor: pointer; font-size: 1rem; }
         .btn-save { background: var(--accent); color: white; }
         .btn-dl { background: #334155; color: white; }
 
-        /* Log */
-        .log-section { margin-top: 30px; border-top: 2px solid #f1f5f9; padding-top: 20px; }
-        .log-list { display: flex; flex-direction: column; gap: 8px; max-height: 400px; overflow-y: auto; }
-        .log-entry { display: flex; justify-content: space-between; padding: 10px; background: #fff; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 0.85rem; align-items: center; }
-        .log-tag { font-size: 0.65rem; background: #dbeafe; padding: 2px 6px; border-radius: 4px; margin-left: 3px; font-weight: 700; color: #1e40af; }
+        .log-item { background: #fff; border: 1px solid #e2e8f0; padding: 10px; border-radius: 8px; margin-bottom: 6px; display: flex; justify-content: space-between; align-items: center; }
+        .tag { font-size: 0.65rem; padding: 2px 6px; background: #dbeafe; border-radius: 4px; font-weight: bold; margin-left: 4px; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <!-- Match Setup -->
-    <div class="match-setup">
-        <div class="team-config">
-            <label>Team 1 Code</label>
-            <input type="text" id="t1_code" value="IND" oninput="updateFN()">
-        </div>
-        <div class="vs-circle">VS</div>
-        <div class="team-config">
-            <label>Team 2 Code</label>
-            <input type="text" id="t2_code" value="PAK" oninput="updateFN()">
-        </div>
+    <div class="header-grid">
+        <div class="team-cfg"><label>Team 1</label><input type="text" id="t1_code" value="IND" oninput="updFN()"></div>
+        <div class="vs-badge">VS</div>
+        <div class="team-cfg"><label>Team 2</label><input type="text" id="t2_code" value="PAK" oninput="updFN()"></div>
     </div>
 
-    <!-- Active Team Selection -->
-    <div class="team-tabs">
-        <div class="tab-btn active" id="tab1" onclick="switchTeam(1)">TEAM 1 PLAYERS</div>
-        <div class="tab-btn" id="tab2" onclick="switchTeam(2)">TEAM 2 PLAYERS</div>
+    <div class="tabs">
+        <div class="tab active" id="tab1" onclick="setTeam(1)">TEAM 1</div>
+        <div class="tab" id="tab2" onclick="setTeam(2)">TEAM 2</div>
     </div>
 
-    <div class="selection-zone">
-        <div class="input-group">
-            <label id="countryLabel">Select Team 1 Country</label>
-            <select id="countrySelect" onchange="loadPlayers()"><option value="">-- Choose --</option></select>
-        </div>
-        <div class="input-group">
-            <label>Player Name</label>
-            <select id="playerSelect" onchange="calc()"><option value="">-- Pick Player --</option></select>
-        </div>
+    <div class="grid-3">
+        <div class="input-box"><label>Country</label><select id="country" onchange="loadP()"><option value="">--</option></select></div>
+        <div class="input-box"><label>Player</label><select id="player" onchange="calc()"></select></div>
+        <div class="input-box"><label>Role</label><select id="role" onchange="calc()"><option value="bat">Batsman/AR/WK</option><option value="bowl">Pure Bowler</option></select></div>
     </div>
 
-    <!-- Boosters -->
-    <label class="label" style="font-weight: 800; font-size: 0.75rem; margin-bottom: 5px; display: block;">BOOSTERS</label>
-    <div class="booster-grid">
-        <label class="booster-item"><input type="checkbox" id="b2x"> 2x Score</label>
-        <label class="booster-item"><input type="checkbox" id="bMega"> Megalomaniac</label>
-        <label class="booster-item"><input type="checkbox" id="bVacc"> Vaccinate</label>
-        <label class="booster-item" style="color:var(--danger)"><input type="checkbox" id="bRev"> REVERSE</label>
-        <label class="booster-item"><input type="checkbox" id="bComp"> Companion</label>
-        <label class="booster-item"><input type="checkbox" id="bShad"> Shadow</label>
+    <div class="section-title">Boosters 🚀</div>
+    <div class="booster-zone grid-auto">
+        <label class="check-item"><input type="checkbox" id="b_2x"> 2x Score</label>
+        <label class="check-item"><input type="checkbox" id="b_mega"> Megalomaniac</label>
+        <label class="check-item"><input type="checkbox" id="b_vacc"> Vaccinate</label>
+        <label class="check-item" style="color:red"><input type="checkbox" id="b_rev"> REVERSE</label>
+        <label class="check-item"><input type="checkbox" id="b_comp"> Companion</label>
+        <label class="check-item"><input type="checkbox" id="b_shad"> Shadow</label>
     </div>
 
-    <!-- Stats -->
-    <div class="stats-grid">
-        <div class="input-group"><label>Role</label><select id="role"><option value="bat">Bat/AR/WK</option><option value="bowl">Pure Bowler</option></select></div>
+    <div class="section-title">Batting 🏏</div>
+    <div class="grid-4">
+        <div class="input-box"><label>Runs</label><input type="number" id="runs" value="0"></div>
+        <div class="input-box"><label>Balls</label><input type="number" id="balls" value="0"></div>
+        <div class="input-box"><label>Fours</label><input type="number" id="fours" value="0"></div>
+        <div class="input-box"><label>Sixes</label><input type="number" id="sixes" value="0"></div>
+    </div>
+
+    <div class="section-title">Bowling 🥎</div>
+    <div class="grid-4">
+        <div class="input-box"><label>Wkts (C/S)</label><input type="number" id="wkts_cs" value="0"></div>
+        <div class="input-box"><label>Wkts (B/LBW)</label><input type="number" id="wkts_lb" value="0"></div>
+        <div class="input-box"><label>Dots</label><input type="number" id="dots" value="0"></div>
+        <div class="input-box"><label>Overs</label><input type="number" id="overs" step="0.1" value="0"></div>
+    </div>
+    <div class="grid-4" style="margin-top:10px">
+        <div class="input-box"><label>Runs Conc.</label><input type="number" id="rc" value="0"></div>
+        <div class="input-box"><label>Maidens</label><input type="number" id="maidens" value="0"></div>
+        <label class="check-item"><input type="checkbox" id="hattrick"> Hattrick</label>
+        <label class="check-item"><input type="checkbox" id="twointwo"> 2 in 2</label>
+    </div>
+
+    <div class="section-title">Fielding 🧤</div>
+    <div class="grid-3">
+        <div class="input-box"><label>Catches</label><input type="number" id="catches" value="0"></div>
+        <div class="input-box"><label>Stumpings</label><input type="number" id="stumpings" value="0"></div>
+        <div class="input-box"><label>RunOut (Direct/Involved)</label><div style="display:flex;gap:5px"><input type="number" id="ro_dir" value="0" style="width:50%"><input type="number" id="ro_inv" value="0" style="width:50%"></div></div>
+    </div>
+
+    <div class="section-title">Outcome & Match Status 🏆</div>
+    <div class="grid-auto">
+        <label class="check-item"><input type="checkbox" id="xi" checked> Playing XI</label>
+        <label class="check-item"><input type="checkbox" id="isOut"> Got Out</label>
+        <label class="check-item"><input type="checkbox" id="duckExempt"> Last Over Duck</label>
+        <label class="check-item"><input type="checkbox" id="won"> Won Match</label>
+        <label class="check-item"><input type="checkbox" id="lost"> Lost Match</label>
+        <label class="check-item"><input type="checkbox" id="mom"> MOM</label>
+        <label class="check-item"><input type="checkbox" id="oCap"> Orange Cap</label>
+        <label class="check-item"><input type="checkbox" id="pCap"> Purple Cap</label>
+        <label class="check-item"><input type="checkbox" id="m6"> Most 6s</label>
+        <label class="check-item"><input type="checkbox" id="m4"> Most 4s</label>
+        <label class="check-item"><input type="checkbox" id="emerg"> Emerging</label>
+        <label class="check-item"><input type="checkbox" id="pot"> Tournament Player</label>
+    </div>
+
+    <div class="pts-panel">
+        <div><strong id="p_disp">...</strong>'s Points</div>
+        <div class="pts-val" id="total_pts">0</div>
+    </div>
+
+    <div class="btn-row">
+        <button class="btn btn-save" onclick="save()">SAVE PLAYER</button>
+        <button class="btn btn-dl" onclick="download()">DOWNLOAD <span id="fn_txt">INDvsPAK.json</span></button>
+    </div>
+
+    <div class="section-title">Saved Roster (<span id="count">0</span>)</div>
+    <div id="log"></div>
+</div>
+
+<script>
+const players = {
+    "India": ["Suryakumar Yadav", "Ishan Kishan", "Hardik Pandya", "Axar Patel", "Tilak Varma", "Arshdeep Singh", "Varun Chakravarthy"],
+    "Sri Lanka": ["Kushal Perera", "Kushal Mendis", "Dunith Wellalage", "Matheesha Pathirana", "Dushmantha Chameera", "Kamil Mishara", "Wanindu Hasaranga", "Kamindu Mendis"],
+    "Pakistan": ["Shaheen Afridi", "Said Ayub", "Naseem Shah", "Muhammed Nawaz", "Faheem Ashraf", "Babar Azam", "Abrar Ahmed", "Fakhar Zaman", "Salman Agha", "Usman Khan", "Shahibzada Farhan"],
+    "Australia": ["Cooper Connolly", "Nathan Ellis", "Travis Head", "Marcus Stoinis", "Josh Inglis", "Mitchell Marsh", "Matthew Kunhemann", "Xavier Bartlett", "Josh Hazlewood", "Ben Dwarshuis", "Matt Renshaw"],
+    "New Zealand": ["Rachin Ravindra", "Daryl Mitchell", "Finn Allen", "Jacob Duffy", "Mark Chapman", "Glenn Phillips", "Kyle Jamieson", "Michael Bracewell"],
+    "South Africa": ["Tristan Stubbs", "Quinton de Kock", "Keshav Maharaj", "Dewald Brevis", "Marco Jansen", "George Linde", "David Miller", "Lungi Ngidi", "Corbin Bosch"],
+    "England": ["Jofra Archer", "Adil Rashid", "Will Jacks", "Luke Wood", "Harry Brook", "Jacob Bethell", "Jos Buttler", "Sam Curran"],
+    "Afghanistan": ["Mujeeb Ur Rehman", "Ibrahim Zadran", "Sediqullah Atal", "Darwish Rasooli", "Rashid Khan", "Azmatullah Omarzai", "Fazalhaq Farooqi"],
+    "West Indies": ["Jason Holder", "Gudakesh Motie", "Roston Chase", "Rovman Powell", "Shai Hope", "Brandon King", "Mathew Forde", "Johnson Charles", "Jayden Seales", "Shimron Hetmyer", "Romario Shepherd", "Akeal Hosein"],
+    "Others": ["Sikandar Raza", "JJ Smuts", "Aasif Sheikh", "Monank Patel", "Logan van Beek", "Scott Edwards", "Andre Gous"]
+};
+
+let activeTeam = 1;
+let savedData = [];
+let teamMap = {1: "", 2: ""};
+
+function init() {
+    const cSel = document.getElementById('country');
+    Object.keys(players).forEach(c => cSel.innerHTML += `<option value="${c}">${c}</option>`);
+    updFN();
+}
+
+function setTeam(id) {
+    activeTeam = id;
+    document.getElementById('tab1').className = (id===1) ? 'tab active' : 'tab';
+    document.getElementById('tab2').className = (id===2) ? 'tab active' : 'tab';
+    document.getElementById('country').value = teamMap[id];
+    loadP();
+}
+
+function loadP() {
+    const c = document.getElementById('country').value;
+    teamMap[activeTeam] = c;
+    const pSel = document.getElementById('player');
+    pSel.innerHTML = '<option value="">-- Select --</option>';
+    if(players[c]) players[c].forEach(p => pSel.innerHTML += `<option value="${p}">${p}</option>`);
+}
+
+function calc() {
+    const name = document.getElementById('player').value;
+    document.getElementById('p_disp').innerText = name || "...";
+    
+    let p = 0;
+    const runs = parseInt(document.getElementById('runs').value) || 0;
+    const balls = parseInt(document.getElementById('balls').value) || 0;
+    const fours = parseInt(document.getElementById('fours').value) || 0;
+    const sixes = parseInt(document.getElementById('sixes').value) || 0;
+    const out = document.getElementById('isOut').checked;
+    const role = document.getElementById('role').value;
+    const duckEx = document.getElementById('duckExempt').checked;
+
+    // Batting
+    p += (runs * 1) + (fours * 1) + (sixes * 3);
+    if(runs === 0 && out && role !== 'bowl' && !duckEx) p -= 10;
+    
+    if(runs >= 150) p += 40;
+    else if(runs >= 125) p += 25;
+    else if(runs >= 100) p += 20;
+    else if(runs >= 75) p += 15;
+    else if(runs >= 50) p += 10;
+    else if(runs >= 30) p += 5;
+
+    if(!out && balls >= 30) p += 10;
+
+    // Strike Rate
+    if(balls >= 10 || runs >= 20) {
+        if(role !== 'bowl') {
+            const sr = (runs/balls)*100;
+            if(sr <= 50) p -= 30;
+            else if(sr <= 75) p -= 20;
+            else if(sr <= 100) p -= 10;
+            else if(sr > 120) {
+                let bonus = 0;
+                if(sr > 200) bonus = 20 + Math.floor((sr - 200)/25) * 5;
+                else if(sr > 175) bonus = 20;
+                else if(sr > 150) bonus = 15;
+                else if(sr > 135) bonus = 10;
+                else if(sr > 120) bonus = 5;
+                p += bonus;
+            }
+        }
+    }
+
+    // Bowling
+    const wcs = parseInt(document.getElementById('wkts_cs').value) || 0;
+    const wlb = parseInt(document.getElementById('wkts_lb').value) || 0;
+    const twks = wcs + wlb;
+    p += (wcs * 25) + (wlb * (25 + 8));
+    p += (parseInt(document.getElementById('maidens').value) || 0) * 25;
+    p += (parseInt(document.getElementById('dots').value) || 0) * 1;
+
+    if(twks >= 7) p += 50;
+    else if(twks >= 6) p += 40;
+    else if(twks >= 5) p += 30;
+    else if(twks >= 4) p += 20;
+    else if(twks >= 3) p += 10;
+
+    if(document.getElementById('hattrick').checked) p += 100;
+    if(document.getElementById('twointwo').checked) p += 25;
+
+    // Economy
+    const overs = parseFloat(document.getElementById('overs').value) || 0;
+    const rc = parseInt(document.getElementById('rc').value) || 0;
+    if(overs >= 2) {
+        const eco = rc/overs;
+        if(eco <= 1.0) p += 70;
+        else if(eco <= 2.0) p += 60;
+        else if(eco <= 3.0) p += 50;
+        else if(eco <= 4.0) p += 40;
+        else if(eco <= 5.0) p += 30;
+        else if(eco <= 6.0) p += 20;
+        else if(eco <= 7.0) p += 10;
+        else if(eco > 14.0) p -= 20;
+        else if(eco > 12.0) p -= 15;
+        else if(eco > 11.0) p -= 10;
+        else if(eco > 10.0) p -= 5;
+    }
+
+    // Fielding
+    const ct = parseInt(document.getElementById('catches').value) || 0;
+    const st = parseInt(document.getElementById('stumpings').value) || 0;
+    const rd = parseInt(document.getElementById('ro_dir').value) || 0;
+    const ri = parseInt(document.getElementById('ro_inv').value) || 0;
+    p += (ct * 10) + (st * 15) + (rd * 25) + (ri * 10);
+    if((ct + st + rd + ri) >= 3) p += 30;
+
+    // Others
+    if(document.getElementById('xi').checked) p += 5;
+    if(document.getElementById('won').checked) p += 10;
+    if(document.getElementById('lost').checked) p -= 5;
+    if(document.getElementById('mom').checked) p += 50;
+    if(document.getElementById('oCap').checked) p += 150;
+    if(document.getElementById('pCap').checked) p += 150;
+    if(document.getElementById('emerg').checked) p += 75;
+    if(document.getElementById('m6').checked) p += 100;
+    if(document.getElementById('m4').checked) p += 100;
+    if(document.getElementById('pot').checked) p += 200;
+
+    // Boosters
+    if(document.getElementById('b_mega').checked) {
+        p += (parseInt(document.getElementById('dots').value) || 0) * 10;
+        p += (fours + sixes) * 10;
+    }
+    if(document.getElementById('b_2x').checked) p *= 2;
+    if(document.getElementById('b_vacc').checked && p < 0) p = 0;
+    if(document.getElementById('b_rev').checked) p = 0;
+
+    document.getElementById('total_pts').innerText = p;
+    return p;
+}
+
+function save() {
+    const pName = document.getElementById('player').value;
+    if(!pName) return;
+    const points = calc();
+    const tCode = document.getElementById(`t${activeTeam}_code`).value;
+    
+    const bsts = [];
+    if(document.getElementById('b_2x').checked) bsts.push('2x');
+    if(document.getElementById('b_mega').checked) bsts.push('Mega');
+    if(document.getElementById('b_vacc').checked) bsts.push('Vacc');
+    if(document.getElementById('b_rev').checked) bsts.push('REV');
+    if(document.getElementById('b_comp').checked) bsts.push('Comp');
+    if(document.getElementById('b_shad').checked) bsts.push('Shad');
+
+    savedData.push({ name: pName, team: tCode, points, boosters: bsts });
+
+    const log = document.getElementById('log');
+    const div = document.createElement('div');
+    div.className = 'log-item';
+    div.innerHTML = `<div><strong>${pName}</strong> (${tCode})${bsts.map(b=>`<span class="tag">${b}</span>`).join('')}</div> <strong>${points}</strong>`;
+    log.prepend(div);
+    
+    document.getElementById('count').innerText = savedData.length;
+    document.querySelectorAll('input[type="number"]').forEach(i => i.value = 0);
+    document.querySelectorAll('input[type="checkbox"]').forEach(i => i.checked = false);
+    document.getElementById('xi').checked = true;
+    calc();
+}
+
+function updFN() {
+    const a = document.getElementById('t1_code').value || 'T1';
+    const b = document.getElementById('t2_code').value || 'T2';
+    document.getElementById('fn_txt').innerText = `${a.toUpperCase()}vs${b.toUpperCase()}.json`;
+}
+
+function download() {
+    if(!savedData.length) return;
+    const blob = new Blob([JSON.stringify(savedData, null, 2)], { type: 'application/json' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = document.getElementById('fn_txt').innerText;
+    a.click();
+}
+
+document.querySelectorAll('input, select').forEach(el => el.oninput = calc);
+init();
+</script>
+</body>
+</html>
+
         <div class="input-group"><label>Runs Scored</label><input type="number" id="runs" value="0"></div>
         <div class="input-group"><label>Balls Faced</label><input type="number" id="balls" value="0"></div>
         <div class="input-group"><label>4s/6s</label><div style="display:flex;gap:5px"><input type="number" id="fours" value="0" placeholder="4s"><input type="number" id="sixes" value="0" placeholder="6s"></div></div>
