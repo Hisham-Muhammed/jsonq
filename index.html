@@ -1,336 +1,351 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Tournament Stats Master - Fixed</title>
-    <style>
-        :root {
-            --primary: #0f172a; --secondary: #3b82f6; --accent: #10b981; --danger: #ef4444; --bg: #f8fafc;
-        }
-        body { font-family: 'Inter', system-ui, sans-serif; background: var(--bg); margin: 0; padding: 10px; color: #1e293b; font-size: 13px; }
-        .container { max-width: 1000px; margin: auto; background: white; padding: 15px; border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); }
+import React, { useState } from 'react';
+import { Camera, Trash2, Zap, Loader2, Trophy, Award, TrendingUp, TrendingDown, Star } from 'lucide-react';
+
+const apiKey = ""; 
+
+export default function App() {
+  const [loading, setLoading] = useState(false);
+  const [detectedPlayers, setDetectedPlayers] = useState([]);
+  const [savedRecords, setSavedRecords] = useState([]);
+  const [images, setImages] = useState([]);
+  const [expanded, setExpanded] = useState(null);
+  const [error, setError] = useState(null);
+
+  const calculatePoints = (p) => {
+    let bat = 0, bowl = 0, field = 0, other = 0;
+    let logs = [];
+
+    // --- (i) BATTING ---
+    const runs = Number(p.runs || 0);
+    const balls = Number(p.balls || 0);
+    const runPts = runs * 1;
+    const fourPts = (p.fours || 0) * 1;
+    const sixPts = (p.sixes || 0) * 3;
+    bat += runPts + fourPts + sixPts;
+    if (runPts) logs.push(`Runs (${runs}): +${runPts}`);
+    if (fourPts) logs.push(`4s: +${fourPts}`);
+    if (sixPts) logs.push(`6s: +${sixPts}`);
+
+    const isBowler = (p.balls_bowled || 0) >= 12; 
+    
+    // Duck Logic
+    if (runs === 0 && p.isOut && !p.lastOverDuck && !isBowler) {
+        bat -= 10;
+        logs.push(`Duck: -10`);
+    }
+
+    // Strike Rate
+    if ((balls >= 10 || runs >= 20) && balls > 0 && !isBowler) {
+      const sr = (runs / balls) * 100;
+      let srPts = 0;
+      if (sr <= 50) srPts = -30;
+      else if (sr <= 75) srPts = -20;
+      else if (sr <= 100) srPts = -10;
+      else if (sr > 200) srPts = 20 + (Math.floor((sr - 200) / 25) * 5);
+      else if (sr > 175) srPts = 20;
+      else if (sr > 150) srPts = 15;
+      else if (sr > 135) srPts = 10;
+      else if (sr > 120) srPts = 5;
+      bat += srPts;
+      if (srPts !== 0) logs.push(`SR (${sr.toFixed(1)}): ${srPts > 0 ? '+' : ''}${srPts}`);
+    }
+
+    // Milestones
+    if (runs >= 150) { bat += 40; logs.push(`150+ Bonus: +40`); }
+    else if (runs >= 125) { bat += 25; logs.push(`125+ Bonus: +25`); }
+    else if (runs >= 100) { bat += 20; logs.push(`100+ Bonus: +20`); }
+    else if (runs >= 75) { bat += 15; logs.push(`75+ Bonus: +15`); }
+    else if (runs >= 50) { bat += 10; logs.push(`50+ Bonus: +10`); }
+    else if (runs >= 30) { bat += 5; logs.push(`30+ Bonus: +5`); }
+
+    if (!p.isOut && balls >= 30) { bat += 10; logs.push(`Unbeaten (30+ balls): +10`); }
+
+    // --- (ii) BOWLING ---
+    const wcsPts = (p.wk_cs || 0) * 25;
+    const wlbPts = (p.wk_lb || 0) * (25 + 8); 
+    const maidenPts = (p.maidens || 0) * 25;
+    const dotPts = (p.dots || 0) * 1;
+    bowl += wcsPts + wlbPts + maidenPts + dotPts;
+    if (wcsPts) logs.push(`Wkts (C/S): +${wcsPts}`);
+    if (wlbPts) logs.push(`Wkts (LBW/B/HW): +${wlbPts}`);
+    if (maidenPts) logs.push(`Maidens: +${maidenPts}`);
+    if (dotPts) logs.push(`Dots: +${dotPts}`);
+
+    // Economy
+    if ((p.balls_bowled || 0) >= 12) {
+      const eco = (p.runs_conc / (p.balls_bowled / 6));
+      let ecoPts = 0;
+      if (eco <= 1.0) ecoPts = 70;
+      else if (eco <= 2.0) ecoPts = 60;
+      else if (eco <= 3.0) ecoPts = 50;
+      else if (eco <= 4.0) ecoPts = 40;
+      else if (eco <= 5.0) ecoPts = 30;
+      else if (eco <= 6.0) ecoPts = 20;
+      else if (eco <= 7.0) ecoPts = 10;
+      else if (eco > 14.0) ecoPts = -20;
+      else if (eco > 12.0) ecoPts = -15;
+      else if (eco > 11.0) ecoPts = -10;
+      else if (eco > 10.0) ecoPts = -5;
+      bowl += ecoPts;
+      if (ecoPts !== 0) logs.push(`Eco (${eco.toFixed(1)}): ${ecoPts > 0 ? '+' : ''}${ecoPts}`);
+    }
+
+    const totW = (p.wk_cs || 0) + (p.wk_lb || 0);
+    if (totW >= 7) { bowl += 50; logs.push(`7-Wkt Bonus: +50`); }
+    else if (totW >= 6) { bowl += 40; logs.push(`6-Wkt Bonus: +40`); }
+    else if (totW >= 5) { bowl += 30; logs.push(`5-Wkt Bonus: +30`); }
+    else if (totW >= 4) { bowl += 20; logs.push(`4-Wkt Bonus: +20`); }
+    else if (totW >= 3) { bowl += 10; logs.push(`3-Wkt Bonus: +10`); }
+
+    if (p.hattrick) { bowl += 100; logs.push(`Hattrick: +100`); }
+    if (p.twoInTwo) { bowl += 25; logs.push(`2-in-2: +25`); }
+
+    // --- (iii) FIELDING ---
+    const cPts = (p.catches || 0) * 10;
+    const sPts = (p.stumpings || 0) * 15;
+    const rdPts = (p.runOutDirect || 0) * 25;
+    const riPts = (p.runOutInvolved || 0) * 10;
+    field += cPts + sPts + rdPts + riPts;
+    if (cPts) logs.push(`Catches: +${cPts}`);
+    if (sPts) logs.push(`Stumpings: +${sPts}`);
+    if (rdPts) logs.push(`RO Direct: +${rdPts}`);
+    if (riPts) logs.push(`RO Involved: +${riPts}`);
+
+    const totField = (p.catches || 0) + (p.stumpings || 0) + (p.runOutDirect || 0) + (p.runOutInvolved || 0);
+    if (totField >= 3) { field += 30; logs.push(`Fielding 3+ Bonus: +30`); }
+
+    // --- OTHER ---
+    if (p.playingXI) { other += 5; logs.push(`Playing XI: +5`); }
+    if (p.matchResult === 'win') { other += 10; logs.push(`Win Bonus: +10`); }
+    else if (p.matchResult === 'loss') { other -= 5; logs.push(`Loss Penalty: -5`); }
+    
+    if (p.mom) { other += 50; logs.push(`M.O.M: +50`); }
+    if (p.orangeCap) { other += 150; logs.push(`Orange Cap: +150`); }
+    if (p.purpleCap) { other += 150; logs.push(`Purple Cap: +150`); }
+    if (p.mostSixes) { other += 100; logs.push(`Most 6s: +100`); }
+    if (p.mostFours) { other += 100; logs.push(`Most 4s: +100`); }
+    if (p.emerging) { other += 75; logs.push(`Emerging: +75`); }
+    if (p.pot) { other += 200; logs.push(`P.O.T: +200`); }
+
+    return { total: Math.round(bat + bowl + field + other), logs };
+  };
+
+  const processImages = async () => {
+    setLoading(true); setError(null);
+    try {
+      const parts = images.map(i => ({ inlineData: { mimeType: "image/png", data: i.split(',')[1] } }));
+      const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{ parts: [
+            { text: `Extract player stats from the provided scorecard images.
+            STRICT RULES:
+            1. ONLY extract players WHO ARE VISIBLY LISTED in the image (Batting or Bowling table). DO NOT include Sanju or others if they are not in the current image.
+            2. If a player is in the Batting table but NOT Bowling table, wk_cs/wk_lb MUST be 0.
+            3. wk_lb = Wickets by LBW, Bowled, or HW (from bowling table).
+            4. wk_cs = Wickets by Catch or Stumping (from bowling table).
+            5. Return JSON: [{name, runs, balls, fours, sixes, isOut, wk_cs, wk_lb, maidens, runs_conc, balls_bowled, catches, stumpings}]` },
+            ...parts
+          ] }],
+          generationConfig: { responseMimeType: "application/json" }
+        })
+      });
+      const data = await res.json();
+      const list = JSON.parse(data.candidates[0].content.parts[0].text);
+      setDetectedPlayers(list.map(p => ({ 
+        ...p, dots: 0, catches: p.catches || 0, stumpings: p.stumpings || 0,
+        runOutDirect: 0, runOutInvolved: 0, playingXI: true, mom: false, 
+        lastOverDuck: false, hattrick: false, twoInTwo: false, matchResult: 'win',
+        orangeCap: false, purpleCap: false, emerging: false, mostSixes: false, mostFours: false, pot: false
+      })));
+    } catch (e) { setError("Analysis failed. Please try again."); } finally { setLoading(false); }
+  };
+
+  const update = (i, f, v) => {
+    const n = [...detectedPlayers];
+    n[i][f] = v;
+    setDetectedPlayers(n);
+  };
+
+  return (
+    <div className="min-h-screen bg-slate-50 p-4 font-sans text-slate-900 pb-24">
+      <div className="max-w-xl mx-auto space-y-6">
         
-        .match-setup { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 10px; margin-bottom: 15px; background: #fff; border: 1px solid #e2e8f0; padding: 10px; border-radius: 12px; }
-        .team-cfg input { padding: 8px; font-weight: 800; border: 2px solid #cbd5e1; border-radius: 8px; text-align: center; text-transform: uppercase; width: 100%; box-sizing: border-box; }
-        .vs-badge { background: var(--primary); color: white; width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; border-radius: 50%; font-weight: 900; font-size: 0.7rem; }
-        
-        .tabs { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px; }
-        .tab { padding: 12px; border: 2px solid #e2e8f0; border-radius: 10px; background: #f1f5f9; cursor: pointer; font-weight: 700; text-align: center; }
-        .tab.active { border-color: var(--secondary); background: #eff6ff; color: var(--secondary); }
+        <div className="bg-white p-6 rounded-[2.5rem] shadow-xl border border-slate-100 text-center relative overflow-hidden">
+          <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-blue-600 to-indigo-600"></div>
+          <h1 className="text-2xl font-black italic tracking-tighter uppercase mb-1">Scorer <span className="text-blue-600">Pro</span></h1>
+          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Active Player Detection Enabled</p>
+        </div>
 
-        .section-title { font-weight: 800; font-size: 0.7rem; color: #64748b; text-transform: uppercase; margin: 15px 0 8px; border-bottom: 1px solid #f1f5f9; padding-bottom: 4px; }
-        .grid-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); gap: 10px; margin-bottom: 10px; }
-        .input-box { display: flex; flex-direction: column; gap: 4px; }
-        label { font-size: 0.7rem; font-weight: 700; color: #475569; }
-        select, input { padding: 8px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 0.9rem; outline: none; }
+        <div className="bg-white p-6 rounded-[2.5rem] shadow-sm border border-slate-100">
+          <div className="flex flex-wrap gap-3 mb-4">
+            <label className="flex-1 min-w-[120px] h-24 rounded-3xl border-2 border-dashed border-slate-200 flex flex-col items-center justify-center cursor-pointer hover:bg-slate-50 transition-all group">
+              <input type="file" multiple hidden onChange={(e) => {
+                Array.from(e.target.files).forEach(f => {
+                  const r = new FileReader();
+                  r.onload = () => setImages(p => [...p, r.result]);
+                  r.readAsDataURL(f);
+                });
+              }} />
+              <Camera size={24} className="text-slate-300 group-hover:text-blue-500 transition-colors" />
+              <span className="text-[8px] font-black uppercase text-slate-400 mt-2">Upload Scorecard</span>
+            </label>
+            {images.map((img, i) => (
+              <div key={i} className="relative w-24 h-24 rounded-3xl overflow-hidden border border-slate-200 group">
+                <img src={img} className="w-full h-full object-cover" />
+                <button onClick={() => setImages(images.filter((_, idx) => idx !== i))} className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1.5 opacity-0 group-hover:opacity-100 transition-opacity"><Trash2 size={12}/></button>
+              </div>
+            ))}
+          </div>
+          <button disabled={images.length === 0 || loading} onClick={processImages} className="w-full py-5 rounded-[1.5rem] bg-slate-900 text-white font-black flex items-center justify-center gap-3 hover:bg-black disabled:opacity-20 shadow-xl active:scale-95 transition-all uppercase tracking-tighter italic">
+            {loading ? <Loader2 className="animate-spin" /> : <Zap size={20} fill="white" />}
+            {loading ? "Detecting Live Stats..." : "Analyze Active Players Only"}
+          </button>
+        </div>
 
-        .booster-zone { background: #fffbeb; border: 1px solid #fde68a; padding: 12px; border-radius: 10px; display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 8px; margin-bottom: 10px; }
-        .other-zone { background: #f0f9ff; border: 1px solid #bae6fd; padding: 12px; border-radius: 10px; display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 8px; }
-        .check-item { display: flex; align-items: center; gap: 6px; font-size: 0.8rem; cursor: pointer; font-weight: 600; }
+        <div className="space-y-4">
+          {detectedPlayers.map((p, i) => {
+            const { total, logs } = calculatePoints(p);
+            const isExp = expanded === i;
+            return (
+              <div key={i} className={`bg-white rounded-[2.5rem] border transition-all duration-500 ${isExp ? 'ring-2 ring-blue-100' : ''} ${p.matchResult === 'win' ? 'border-emerald-100' : 'border-red-50'}`}>
+                <div className="p-5 flex items-center justify-between cursor-pointer" onClick={() => setExpanded(isExp ? null : i)}>
+                  <div className="flex items-center gap-4">
+                    <div className={`w-14 h-14 rounded-[1.5rem] flex items-center justify-center font-black text-2xl italic ${p.matchResult === 'win' ? 'bg-emerald-50 text-emerald-600' : 'bg-red-50 text-red-600'}`}>
+                        {p.name[0]}
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <h3 className="font-black text-[14px] uppercase italic leading-none">{p.name}</h3>
+                        {p.mom && <Trophy size={14} className="text-amber-500 fill-amber-500"/>}
+                      </div>
+                      <div className="text-[10px] font-bold text-slate-400 uppercase mt-1.5">Bat: {p.runs} | Bowl: {(p.wk_cs||0)+(p.wk_lb||0)}</div>
+                    </div>
+                  </div>
+                  <div className="text-right pr-2">
+                    <div className="text-4xl font-black text-blue-600 tracking-tighter leading-none">{total}</div>
+                    <div className="text-[8px] font-black uppercase text-slate-300 mt-1">Match Pts</div>
+                  </div>
+                </div>
 
-        .pts-panel { background: var(--primary); color: white; padding: 20px; border-radius: 12px; display: flex; justify-content: space-between; align-items: center; margin: 20px 0; border-left: 6px solid var(--secondary); }
-        .pts-val { font-size: 2.5rem; font-weight: 900; color: #60a5fa; }
-        
-        .btn-row { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
-        .btn { padding: 15px; border: none; border-radius: 10px; font-weight: 800; cursor: pointer; font-size: 1rem; }
-        .btn-save { background: var(--accent); color: white; }
-        .btn-dl { background: #334155; color: white; }
+                {isExp && (
+                  <div className="px-6 pb-8 pt-2 space-y-6 animate-in slide-in-from-top-2 duration-300">
+                    <div className="flex gap-2">
+                        <button onClick={() => update(i, 'matchResult', p.matchResult === 'win' ? 'loss' : 'win')} className={`flex-1 py-4 rounded-2xl text-[10px] font-black uppercase flex items-center justify-center gap-2 transition-all ${p.matchResult === 'win' ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-100' : 'bg-red-500 text-white shadow-lg shadow-red-100'}`}>
+                            {p.matchResult === 'win' ? <TrendingUp size={14}/> : <TrendingDown size={14}/>} {p.matchResult.toUpperCase()}
+                        </button>
+                        <button onClick={() => update(i, 'mom', !p.mom)} className={`flex-1 py-4 rounded-2xl text-[10px] font-black uppercase flex items-center justify-center gap-2 border transition-all ${p.mom ? 'bg-amber-400 text-white border-amber-400 shadow-lg' : 'bg-slate-50 text-slate-400 border-slate-100'}`}>
+                            M.O.M
+                        </button>
+                    </div>
 
-        .log-item { background: #fff; border: 1px solid #e2e8f0; padding: 10px; border-radius: 8px; margin-bottom: 6px; display: flex; justify-content: space-between; align-items: center; }
-    </style>
-</head>
-<body>
+                    <div className="bg-slate-50 p-5 rounded-3xl space-y-4 border border-slate-100">
+                      <div className="text-[11px] font-black text-blue-600 uppercase tracking-widest">Batting Stats</div>
+                      <div className="grid grid-cols-4 gap-3">
+                        {['runs', 'balls', 'fours', 'sixes'].map(f => (
+                          <div key={f}><label className="text-[9px] font-black text-slate-400 uppercase pl-1">{f}</label>
+                          <input type="number" value={p[f]} onChange={e => update(i, f, +e.target.value)} className="w-full bg-white p-3 rounded-2xl font-black text-sm text-center border-none shadow-sm focus:ring-2 focus:ring-blue-200 outline-none" /></div>
+                        ))}
+                      </div>
+                      <div className="flex gap-2">
+                        <button onClick={() => update(i, 'isOut', !p.isOut)} className={`flex-1 py-3 rounded-xl text-[9px] font-black uppercase transition-all ${p.isOut ? 'bg-slate-800 text-white' : 'bg-white text-slate-400 border border-slate-200'}`}>Out</button>
+                        <button onClick={() => update(i, 'lastOverDuck', !p.lastOverDuck)} className={`flex-1 py-3 rounded-xl text-[9px] font-black uppercase transition-all ${p.lastOverDuck ? 'bg-indigo-500 text-white' : 'bg-white text-slate-400 border border-slate-200'}`}>20th Over</button>
+                      </div>
+                    </div>
 
-<div class="container">
-    <div class="match-setup">
-        <div class="team-cfg"><label>Team 1</label><input type="text" id="t1_code" value="GOAT" oninput="updFN()"></div>
-        <div class="vs-badge">VS</div>
-        <div class="team-cfg"><label>Team 2</label><input type="text" id="t2_code" value="PLK" oninput="updFN()"></div>
+                    <div className="bg-emerald-50/20 p-5 rounded-3xl space-y-4 border border-emerald-100">
+                      <div className="text-[11px] font-black text-emerald-600 uppercase flex justify-between items-center tracking-widest">
+                        Bowling
+                        <div className="flex gap-2">
+                          <button onClick={() => update(i, 'hattrick', !p.hattrick)} className={`px-3 py-1 rounded-full text-[8px] font-black uppercase ${p.hattrick ? 'bg-emerald-500 text-white' : 'bg-white text-slate-400 border'}`}>Hattrick</button>
+                          <button onClick={() => update(i, 'twoInTwo', !p.twoInTwo)} className={`px-3 py-1 rounded-full text-[8px] font-black uppercase ${p.twoInTwo ? 'bg-emerald-500 text-white' : 'bg-white text-slate-400 border'}`}>2-in-2</button>
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-4 gap-3">
+                        {['wk_cs', 'wk_lb', 'maidens', 'dots'].map(f => (
+                          <div key={f}><label className="text-[9px] font-black text-slate-400 uppercase pl-1">{f === 'wk_lb' ? 'LBW/B' : f === 'wk_cs' ? 'Caught' : f}</label>
+                          <input type="number" value={p[f]||0} onChange={e => update(i, f, +e.target.value)} className="w-full bg-white p-3 rounded-2xl font-black text-sm text-center border-none shadow-sm outline-none" /></div>
+                        ))}
+                      </div>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div><label className="text-[9px] font-black text-slate-400 uppercase pl-1">Balls Bowled</label>
+                        <input type="number" value={p.balls_bowled||0} onChange={e => update(i, 'balls_bowled', +e.target.value)} className="w-full bg-white p-3 rounded-2xl font-black text-sm text-center border-none shadow-sm" /></div>
+                        <div><label className="text-[9px] font-black text-slate-400 uppercase pl-1">Runs Conc.</label>
+                        <input type="number" value={p.runs_conc||0} onChange={e => update(i, 'runs_conc', +e.target.value)} className="w-full bg-white p-3 rounded-2xl font-black text-sm text-center border-none shadow-sm" /></div>
+                      </div>
+                    </div>
+
+                    <div className="bg-amber-50/20 p-5 rounded-3xl space-y-4 border border-amber-100">
+                      <div className="text-[11px] font-black text-amber-600 uppercase tracking-widest">Fielding</div>
+                      <div className="grid grid-cols-4 gap-3">
+                        {['catches', 'stumpings', 'runOutDirect', 'runOutInvolved'].map(f => (
+                          <div key={f}><label className="text-[9px] font-black text-slate-400 uppercase pl-1">{f.startsWith('run') ? 'RO' : f.slice(0,4)}</label>
+                          <input type="number" value={p[f]||0} onChange={e => update(i, f, +e.target.value)} className="w-full bg-white p-3 rounded-2xl font-black text-sm text-center border-none shadow-sm outline-none" /></div>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-3 gap-2">
+                        {['orangeCap', 'purpleCap', 'mostSixes', 'mostFours', 'emerging', 'pot'].map(f => (
+                            <button key={f} onClick={() => update(i, f, !p[f])} className={`py-3 rounded-xl text-[8px] font-black uppercase border transition-all ${p[f] ? 'bg-indigo-600 text-white border-indigo-600 shadow-md' : 'bg-slate-50 text-slate-400 border-slate-100'}`}>
+                                {f === 'pot' ? 'P.O.T' : f.replace(/([A-Z])/g, ' $1')}
+                            </button>
+                        ))}
+                    </div>
+
+                    <div className="bg-slate-900 rounded-[2rem] p-6 shadow-2xl">
+                      <div className="grid grid-cols-2 gap-x-8 gap-y-2 mb-4 border-b border-white/10 pb-5">
+                        {logs.map((log, idx) => (
+                          <div key={idx} className="flex justify-between items-center text-[11px] font-mono">
+                            <span className="text-slate-500 uppercase tracking-tighter">{log.split(':')[0]}</span>
+                            <span className="text-emerald-400 font-black">{log.split(':')[1]}</span>
+                          </div>
+                        ))}
+                      </div>
+                      <div className="flex justify-between items-end">
+                        <div className="text-left"><p className="text-[8px] text-slate-500 font-black uppercase">Grand Total</p><p className="text-xs text-white/50 font-bold tracking-widest italic">{p.name}</p></div>
+                        <div className="text-5xl font-black text-white italic tracking-tighter leading-none">{total}</div>
+                      </div>
+                    </div>
+
+                    <div className="flex gap-3 pt-2">
+                      <button onClick={() => setDetectedPlayers(detectedPlayers.filter((_, idx) => idx !== i))} className="flex-1 py-5 bg-slate-100 text-slate-400 rounded-[1.5rem] font-black uppercase text-[11px] hover:bg-red-50 hover:text-red-400 transition-all">Discard</button>
+                      <button onClick={() => {
+                        setSavedRecords([{name: p.name, points: total, mom: p.mom}, ...savedRecords]);
+                        setDetectedPlayers(detectedPlayers.filter((_, idx) => idx !== i));
+                      }} className="flex-[2] py-5 bg-blue-600 text-white rounded-[1.5rem] font-black uppercase text-[11px] shadow-2xl shadow-blue-200 active:scale-95 transition-all italic">Save Point</button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+
+        {savedRecords.length > 0 && (
+          <div className="bg-white p-8 rounded-[3rem] border border-slate-100 shadow-2xl">
+            <h2 className="font-black italic text-sm uppercase flex items-center gap-2 mb-6 tracking-tight"><Award className="text-blue-600" size={18}/> Tournament Leaderboard</h2>
+            <div className="space-y-3">
+              {savedRecords.sort((a,b) => b.points - a.points).map((r, i) => (
+                <div key={i} className={`flex justify-between items-center p-5 rounded-[1.5rem] transition-all ${r.mom ? 'bg-amber-50 border-2 border-amber-100' : 'bg-slate-50 border border-slate-100'}`}>
+                  <div className="flex items-center gap-4">
+                    <span className="text-[12px] font-black text-slate-300">0{i+1}</span>
+                    <span className="font-black uppercase italic text-[12px] text-slate-700 tracking-tight">{r.name}</span>
+                    {r.mom && <Star size={12} className="text-amber-500 fill-amber-500"/>}
+                  </div>
+                  <div className="flex items-center gap-5">
+                    <span className="text-2xl font-black text-blue-700 italic">{r.points} <span className="text-[9px] text-slate-400 uppercase font-bold not-italic">Pts</span></span>
+                    <button onClick={() => setSavedRecords(savedRecords.filter((_, idx) => idx !== i))} className="text-slate-300 hover:text-red-500"><Trash2 size={16}/></button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+      </div>
     </div>
-
-    <div class="tabs">
-        <div class="tab active" id="tab1" onclick="setTeam(1)">TEAM 1</div>
-        <div class="tab" id="tab2" onclick="setTeam(2)">TEAM 2</div>
-    </div>
-
-    <div class="grid-row">
-        <div class="input-box"><label>Country</label><select id="country" onchange="loadP()"><option value="">-- Country --</option></select></div>
-        <div class="input-box"><label>Player</label><select id="player" onchange="calc()"></select></div>
-        <div class="input-box"><label>Role</label><select id="role" onchange="calc()">
-            <option value="bat">Batsman/WK/AR</option>
-            <option value="bowl">Pure Bowler</option>
-        </select></div>
-    </div>
-
-    <div class="section-title">Special Boosters 🚀</div>
-    <div class="booster-zone">
-        <label class="check-item"><input type="checkbox" id="b_2x"> 2x Score</label>
-        <label class="check-item"><input type="checkbox" id="b_mega"> Megalomaniac</label>
-        <label class="check-item"><input type="checkbox" id="b_vacc"> Vaccinate</label>
-        <label class="check-item" style="color:var(--danger)"><input type="checkbox" id="b_rev"> REVERSE</label>
-        <label class="check-item"><input type="checkbox" id="b_comp"> Companion</label>
-        <label class="check-item"><input type="checkbox" id="b_shad"> Shadow</label>
-    </div>
-
-    <div class="section-title">Batting</div>
-    <div class="grid-row">
-        <div class="input-box"><label>Runs</label><input type="number" id="runs" value="0"></div>
-        <div class="input-box"><label>Balls</label><input type="number" id="balls" value="0"></div>
-        <div class="input-box"><label>Fours</label><input type="number" id="fours" value="0"></div>
-        <div class="input-box"><label>Sixes</label><input type="number" id="sixes" value="0"></div>
-        <label class="check-item"><input type="checkbox" id="isOut"> Got Out</label>
-        <label class="check-item"><input type="checkbox" id="duckEx"> Last Over Duck</label>
-    </div>
-
-    <div class="section-title">Bowling</div>
-    <div class="grid-row">
-        <div class="input-box"><label>Wkts (C/S)</label><input type="number" id="wk_cs" value="0"></div>
-        <div class="input-box"><label>Wkts (B/LBW/HW)</label><input type="number" id="wk_lb" value="0"></div>
-        <div class="input-box"><label>Maidens</label><input type="number" id="maidens" value="0"></div>
-        <div class="input-box"><label>Overs</label><input type="number" id="overs" step="0.1" value="0"></div>
-        <div class="input-box"><label>Runs Conc.</label><input type="number" id="rc" value="0"></div>
-        <div class="input-box"><label>Dots</label><input type="number" id="dots" value="0"></div>
-    </div>
-    <div class="grid-row">
-        <label class="check-item"><input type="checkbox" id="hattrick"> Hattrick (+100)</label>
-        <label class="check-item"><input type="checkbox" id="t2t"> 2 in 2 Balls (+25)</label>
-    </div>
-
-    <div class="section-title">Fielding</div>
-    <div class="grid-row">
-        <div class="input-box"><label>Catches</label><input type="number" id="f_catch" value="0"></div>
-        <div class="input-box"><label>Stumpings</label><input type="number" id="f_stump" value="0"></div>
-        <div class="input-box"><label>RunOut (Direct)</label><input type="number" id="f_rod" value="0"></div>
-        <div class="input-box"><label>RunOut (Involved)</label><input type="number" id="f_roi" value="0"></div>
-    </div>
-
-    <div class="section-title">Other Points</div>
-    <div class="other-zone">
-        <label class="check-item"><input type="checkbox" id="o_xi" checked> Playing XI (+5)</label>
-        <label class="check-item"><input type="checkbox" id="o_win"> Match Win (+10)</label>
-        <label class="check-item" style="color:var(--danger)"><input type="checkbox" id="o_loss"> Match Loss (-5)</label>
-        <label class="check-item"><input type="checkbox" id="o_mom"> MOM (+50)</label>
-        <label class="check-item"><input type="checkbox" id="o_ocap"> Orange Cap (+150)</label>
-        <label class="check-item"><input type="checkbox" id="o_pcap"> Purple Cap (+150)</label>
-        <label class="check-item"><input type="checkbox" id="o_emg"> Emerging (+75)</label>
-        <label class="check-item"><input type="checkbox" id="o_m6"> Most 6s (+100)</label>
-        <label class="check-item"><input type="checkbox" id="o_m4"> Most 4s (+100)</label>
-        <label class="check-item"><input type="checkbox" id="o_pot"> POT (+200)</label>
-    </div>
-
-    <div class="pts-panel">
-        <div><strong id="p_disp" style="font-size:1.2rem">...</strong></div>
-        <div class="pts-val" id="total_pts">0</div>
-    </div>
-
-    <div class="btn-row">
-        <button class="btn btn-save" onclick="save()">SAVE PLAYER</button>
-        <button class="btn btn-dl" onclick="download()">DOWNLOAD JSON <span id="fn_txt">STATS.json</span></button>
-    </div>
-
-    <div id="log" style="margin-top:20px"></div>
-</div>
-
-<script>
-const players = {
-    "India": ["Abhishek Sharma", "Rinku Singh", "Jasprit Bumrah", "Sanju Samson", "Kuldeep Yadav", "Suryakumar Yadav", "Ishan Kishan", "Hardik Pandya", "Axar Patel", "Tilak Varma", "Arshdeep Singh", "Varun Chakravarthy", "Shivam Dube", "Mohammed Siraj"],
-    "Afghanistan": ["Rahmanullah Gurbaz", "Mohammed Nabi", "Mujeeb Ur Rehman", "Ibrahim Zadran", "Sediqullah Atal", "Darwish Rasooli", "Rashid Khan", "Noor Ahmed", "Gulbadin Naib", "Fazalhaq Farooqi"],
-    "South Africa": ["Anrich Nortje", "Tristan Stubbs", "Quinton de Kock", "Keshav Maharaj", "Dewald Brevis", "Marco Jansen", "George Linde", "David Miller", "Lungi Ngidi", "Corbin Bosch", "Ryan Rickelton", "Kagiso Rabada"],
-    "Australia": ["Adam Zampa", "Cooper Connolly", "Nathan Ellis", "Travis Head", "Marcus Stoinis", "Josh Inglis", "Mitchell Marsh", "Xavier Bartlett", "Josh Hazlewood", "Tim David", "Glenn Maxwell", "Matthew Kunhemann", "Ben Dwarshuis", "Matt Renshaw"],
-    "New Zealand": ["Ish Sodhi", "Rachin Ravindra", "Daryl Mitchell", "Finn Allen", "Jacob Duffy", "Mark Chapman", "Glenn Phillips", "Kyle Jamieson", "Michael Bracewell", "Tim Seifert", "Mitchell Santner", "Neesham", "Mat Henry"],
-    "Sri Lanka": ["Maheesh Theekshana", "Kushal Perera", "Kushal Mendis", "Dunith Wellalage", "Matheesha Pathirana", "Dushmantha Chameera", "Kamil Mishara", "Pathum Nissanka", "Dasun Shanaka", "Kamindu Mendis"],
-    "Pakistan": ["Shadab Khan", "Shaheen Shah Afridi", "Said Ayub", "Babar Azam", "Naseem Shah", "Muhammed Nawaz", "Faheem Ashraf", "Fakhar Zaman", "Salman Agha", "Usman Khan", "Shahibzada Farhan", "Abrar Ahmed"],
-    "England": ["Jofra Archer", "Adil Rashid", "Will Jacks", "Luke Wood", "Harry Brook", "Jacob Bethell", "Jos Buttler", "Sam Curran", "Tom Banton", "Phil Salt"],
-    "West Indies": ["Shefone Rutherford", "Jason Holder", "Gudakesh Motie", "Roston Chase", "Rovman Powell", "Shai Hope", "Brandon King", "Mathew Forde", "Johnson Charles", "Jayden Seales", "Shimron Hetmyer", "Romario Shepherd", "Akeal Hosein"],
-    "Others": ["Paul Stirling", "Sikandar Raza", "JJ Smuts", "Monank Patel", "Aasif Sheikh", "Logan van Beek", "Scott Edwards", "Andre Gous"]
-};
-
-let activeTeam = 1;
-let savedData = [];
-let teamCountries = {1: "", 2: ""};
-
-function init() {
-    const cSel = document.getElementById('country');
-    Object.keys(players).sort().forEach(c => cSel.innerHTML += `<option value="${c}">${c}</option>`);
-    updFN();
+  );
 }
-
-function setTeam(id) {
-    activeTeam = id;
-    document.getElementById('tab1').className = (id===1) ? 'tab active' : 'tab';
-    document.getElementById('tab2').className = (id===2) ? 'tab active' : 'tab';
-    document.getElementById('country').value = teamCountries[id];
-    loadP();
-}
-
-function loadP() {
-    const c = document.getElementById('country').value;
-    teamCountries[activeTeam] = c;
-    const pSel = document.getElementById('player');
-    pSel.innerHTML = '<option value="">-- Select Player --</option>';
-    if(players[c]) players[c].sort().forEach(p => pSel.innerHTML += `<option value="${p}">${p}</option>`);
-}
-
-function calc() {
-    let p = 0;
-    const role = document.getElementById('role').value;
-    
-    // --- Batting ---
-    const runs = parseInt(document.getElementById('runs').value) || 0;
-    const balls = parseInt(document.getElementById('balls').value) || 0;
-    const fours = parseInt(document.getElementById('fours').value) || 0;
-    const sixes = parseInt(document.getElementById('sixes').value) || 0;
-    const isOut = document.getElementById('isOut').checked;
-
-    p += (runs * 1) + (fours * 1) + (sixes * 3);
-    
-    // Duck (No negatives for bowlers)
-    if(runs === 0 && isOut && role === 'bat' && !document.getElementById('duckEx').checked) {
-        p -= 10;
-    }
-
-    // SR (Min 10 balls or 20 runs)
-    if((balls >= 10 || runs >= 20) && role === 'bat') {
-        const sr = (runs / balls) * 100;
-        if(sr <= 50) p -= 30;
-        else if(sr <= 75) p -= 20;
-        else if(sr <= 100) p -= 10;
-        else if(sr > 200) {
-            let base = 20;
-            let extras = Math.floor((sr - 200) / 25) * 5;
-            p += (base + extras);
-        }
-        else if(sr > 175) p += 20;
-        else if(sr > 150) p += 15;
-        else if(sr > 135) p += 10;
-        else if(sr > 120) p += 5;
-    }
-
-    // Batting Milestones
-    if(runs >= 150) p += 40;
-    else if(runs >= 125) p += 25;
-    else if(runs >= 100) p += 20;
-    else if(runs >= 75) p += 15;
-    else if(runs >= 50) p += 10;
-    else if(runs >= 30) p += 5;
-
-    // Unbeaten (30+ balls)
-    if(!isOut && balls >= 30) p += 10;
-
-    // --- Bowling ---
-    const wk_cs = parseInt(document.getElementById('wk_cs').value) || 0;
-    const wk_lb = parseInt(document.getElementById('wk_lb').value) || 0;
-    const tw = wk_cs + wk_lb;
-    
-    p += (wk_cs * 25); 
-    p += (wk_lb * 33); // Corrected: 25 (base) + 8 (bonus) = 33
-    
-    p += (parseInt(document.getElementById('maidens').value) || 0) * 25;
-    p += (parseInt(document.getElementById('dots').value) || 0) * 1;
-
-    // Economy Rate (Min 12 balls/2 overs)
-    const overs = parseFloat(document.getElementById('overs').value) || 0;
-    const rc = parseInt(document.getElementById('rc').value) || 0;
-    if(overs >= 2) {
-        const eco = rc / overs;
-        if(eco <= 1.0) p += 70;
-        else if(eco <= 2.0) p += 60;
-        else if(eco <= 3.0) p += 50;
-        else if(eco <= 4.0) p += 40;
-        else if(eco <= 5.0) p += 30;
-        else if(eco <= 6.0) p += 20;
-        else if(eco <= 7.0) p += 10;
-        else if(eco > 14.0) p -= 20;
-        else if(eco > 12.0) p -= 15;
-        else if(eco > 11.0) p -= 10;
-        else if(eco > 10.0) p -= 5;
-    }
-
-    // Bowling Milestones
-    if(tw >= 7) p += 50;
-    else if(tw >= 6) p += 40;
-    else if(tw >= 5) p += 30;
-    else if(tw >= 4) p += 20;
-    else if(tw >= 3) p += 10;
-
-    if(document.getElementById('hattrick').checked) p += 100;
-    if(document.getElementById('t2t').checked) p += 25;
-
-    // --- Fielding ---
-    const fc = parseInt(document.getElementById('f_catch').value) || 0;
-    const fs = parseInt(document.getElementById('f_stump').value) || 0;
-    const frd = parseInt(document.getElementById('f_rod').value) || 0;
-    const fri = parseInt(document.getElementById('f_roi').value) || 0;
-    
-    p += (fc * 10) + (fs * 15) + (frd * 25) + (fri * 10);
-    if((fc + fs + frd + fri) >= 3) p += 30;
-
-    // --- Other ---
-    if(document.getElementById('o_xi').checked) p += 5;
-    if(document.getElementById('o_win').checked) p += 10;
-    if(document.getElementById('o_loss').checked) p -= 5;
-    if(document.getElementById('o_mom').checked) p += 50;
-    if(document.getElementById('o_ocap').checked) p += 150;
-    if(document.getElementById('o_pcap').checked) p += 150;
-    if(document.getElementById('o_emg').checked) p += 75;
-    if(document.getElementById('o_m6').checked) p += 100;
-    if(document.getElementById('o_m4').checked) p += 100;
-    if(document.getElementById('o_pot').checked) p += 200;
-
-    // --- Boosters ---
-    if(document.getElementById('b_mega').checked) {
-        p += (parseInt(document.getElementById('dots').value) || 0) * 10;
-        p += (fours + sixes) * 10;
-    }
-    if(document.getElementById('b_2x').checked) p *= 2;
-    if(document.getElementById('b_vacc').checked && p < 0) p = 0;
-    if(document.getElementById('b_rev').checked) p = 0;
-
-    document.getElementById('total_pts').innerText = Math.round(p);
-    document.getElementById('p_disp').innerText = document.getElementById('player').value || "...";
-    return Math.round(p);
-}
-
-function save() {
-    const name = document.getElementById('player').value;
-    if(!name) return;
-    const pts = calc();
-    const team = document.getElementById(`t${activeTeam}_code`).value;
-
-    savedData.push({
-        name, team, pts,
-        timestamp: new Date().toLocaleTimeString(),
-        summary: {
-            bat: document.getElementById('runs').value + "(" + document.getElementById('balls').value + ")",
-            wkts: parseInt(document.getElementById('wk_cs').value) + parseInt(document.getElementById('wk_lb').value)
-        }
-    });
-
-    const div = document.createElement('div');
-    div.className = 'log-item';
-    div.innerHTML = `<div><strong>${name}</strong> (${team})</div> <strong>${pts} pts</strong>`;
-    document.getElementById('log').prepend(div);
-    document.getElementById('count').innerText = savedData.length;
-}
-
-function updFN() {
-    const t1 = document.getElementById('t1_code').value.toUpperCase();
-    const t2 = document.getElementById('t2_code').value.toUpperCase();
-    document.getElementById('fn_txt').innerText = `${t1}vs${t2}_FINAL.json`;
-}
-
-function download() {
-    const blob = new Blob([JSON.stringify(savedData, null, 2)], { type: 'application/json' });
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = document.getElementById('fn_txt').innerText;
-    a.click();
-}
-
-document.querySelectorAll('input, select').forEach(el => el.oninput = calc);
-init();
-</script>
-</body>
-</html>
 
