@@ -1,111 +1,259 @@
-import React, { useState } from 'react';
-import { Camera, Trash2, Zap, Loader2, Trophy, Award, TrendingUp, TrendingDown, Star } from 'lucide-react';
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ultimate Scorer Pro - Tournament Manager</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .glass-effect { background: rgba(255, 255, 255, 0.8); backdrop-filter: blur(10px); }
+        .custom-shadow { box-shadow: 0 20px 50px -12px rgba(0, 0, 0, 0.1); }
+        input[type="number"]::-webkit-inner-spin-button, 
+        input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-900">
+    <div id="root"></div>
 
-const apiKey = ""; 
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+        const apiKey = ""; 
 
-export default function App() {
-  const [loading, setLoading] = useState(false);
-  const [detectedPlayers, setDetectedPlayers] = useState([]);
-  const [savedRecords, setSavedRecords] = useState([]);
-  const [images, setImages] = useState([]);
-  const [expanded, setExpanded] = useState(null);
-  const [error, setError] = useState(null);
+        const Icon = ({ name, size = 20, className = "" }) => {
+            useEffect(() => {
+                if (window.lucide) {
+                    window.lucide.createIcons();
+                }
+            }, [name]);
+            return <i data-lucide={name} className={className} style={{ width: size, height: size }}></i>;
+        };
 
-  const calculatePoints = (p) => {
-    let bat = 0, bowl = 0, field = 0, other = 0;
-    let logs = [];
+        const App = () => {
+            const [loading, setLoading] = useState(false);
+            const [detectedPlayers, setDetectedPlayers] = useState([]);
+            const [savedRecords, setSavedRecords] = useState([]);
+            const [images, setImages] = useState([]);
+            const [expanded, setExpanded] = useState(null);
 
-    // --- (i) BATTING ---
-    const runs = Number(p.runs || 0);
-    const balls = Number(p.balls || 0);
-    const runPts = runs * 1;
-    const fourPts = (p.fours || 0) * 1;
-    const sixPts = (p.sixes || 0) * 3;
-    bat += runPts + fourPts + sixPts;
-    if (runPts) logs.push(`Runs (${runs}): +${runPts}`);
-    if (fourPts) logs.push(`4s: +${fourPts}`);
-    if (sixPts) logs.push(`6s: +${sixPts}`);
+            const calculatePoints = (p) => {
+                let bat = 0, bowl = 0, field = 0, other = 0;
+                let logs = [];
+                const runs = Number(p.runs || 0);
+                const balls = Number(p.balls || 0);
+                
+                // Batting
+                bat += (runs * 1) + (Number(p.fours || 0) * 1) + (Number(p.sixes || 0) * 3);
+                if (runs) logs.push(`Runs (${runs}): +${runs}`);
+                if (p.fours) logs.push(`4s: +${p.fours}`);
+                if (p.sixes) logs.push(`6s: +${Number(p.sixes)*3}`);
 
-    const isBowler = (p.balls_bowled || 0) >= 12; 
-    
-    // Duck Logic
-    if (runs === 0 && p.isOut && !p.lastOverDuck && !isBowler) {
-        bat -= 10;
-        logs.push(`Duck: -10`);
-    }
+                const isBowler = (p.balls_bowled || 0) >= 12;
+                if (runs === 0 && p.isOut && !p.lastOverDuck && !isBowler) {
+                    bat -= 10; logs.push(`Duck: -10`);
+                }
 
-    // Strike Rate
-    if ((balls >= 10 || runs >= 20) && balls > 0 && !isBowler) {
-      const sr = (runs / balls) * 100;
-      let srPts = 0;
-      if (sr <= 50) srPts = -30;
-      else if (sr <= 75) srPts = -20;
-      else if (sr <= 100) srPts = -10;
-      else if (sr > 200) srPts = 20 + (Math.floor((sr - 200) / 25) * 5);
-      else if (sr > 175) srPts = 20;
-      else if (sr > 150) srPts = 15;
-      else if (sr > 135) srPts = 10;
-      else if (sr > 120) srPts = 5;
-      bat += srPts;
-      if (srPts !== 0) logs.push(`SR (${sr.toFixed(1)}): ${srPts > 0 ? '+' : ''}${srPts}`);
-    }
+                if ((balls >= 10 || runs >= 20) && balls > 0 && !isBowler) {
+                    const sr = (runs / balls) * 100;
+                    let srPts = 0;
+                    if (sr <= 50) srPts = -30; else if (sr <= 75) srPts = -20;
+                    else if (sr <= 100) srPts = -10; else if (sr > 200) srPts = 20;
+                    bat += srPts;
+                    if (srPts !== 0) logs.push(`SR (${sr.toFixed(0)}): ${srPts}`);
+                }
 
-    // Milestones
-    if (runs >= 150) { bat += 40; logs.push(`150+ Bonus: +40`); }
-    else if (runs >= 125) { bat += 25; logs.push(`125+ Bonus: +25`); }
-    else if (runs >= 100) { bat += 20; logs.push(`100+ Bonus: +20`); }
-    else if (runs >= 75) { bat += 15; logs.push(`75+ Bonus: +15`); }
-    else if (runs >= 50) { bat += 10; logs.push(`50+ Bonus: +10`); }
-    else if (runs >= 30) { bat += 5; logs.push(`30+ Bonus: +5`); }
+                if (runs >= 50) { bat += 10; logs.push(`50 Bonus: +10`); }
 
-    if (!p.isOut && balls >= 30) { bat += 10; logs.push(`Unbeaten (30+ balls): +10`); }
+                // Bowling
+                bowl += (Number(p.wk_cs || 0) * 25) + (Number(p.wk_lb || 0) * 33) + (Number(p.maidens || 0) * 25);
+                if (p.wk_cs) logs.push(`Wkts (C): +${p.wk_cs * 25}`);
+                if (p.wk_lb) logs.push(`Wkts (LB/B): +${p.wk_lb * 33}`);
 
-    // --- (ii) BOWLING ---
-    const wcsPts = (p.wk_cs || 0) * 25;
-    const wlbPts = (p.wk_lb || 0) * (25 + 8); 
-    const maidenPts = (p.maidens || 0) * 25;
-    const dotPts = (p.dots || 0) * 1;
-    bowl += wcsPts + wlbPts + maidenPts + dotPts;
-    if (wcsPts) logs.push(`Wkts (C/S): +${wcsPts}`);
-    if (wlbPts) logs.push(`Wkts (LBW/B/HW): +${wlbPts}`);
-    if (maidenPts) logs.push(`Maidens: +${maidenPts}`);
-    if (dotPts) logs.push(`Dots: +${dotPts}`);
+                // Other
+                if (p.matchResult === 'win') { other += 10; logs.push(`Win: +10`); }
+                if (p.mom) { other += 50; logs.push(`M.O.M: +50`); }
 
-    // Economy
-    if ((p.balls_bowled || 0) >= 12) {
-      const eco = (p.runs_conc / (p.balls_bowled / 6));
-      let ecoPts = 0;
-      if (eco <= 1.0) ecoPts = 70;
-      else if (eco <= 2.0) ecoPts = 60;
-      else if (eco <= 3.0) ecoPts = 50;
-      else if (eco <= 4.0) ecoPts = 40;
-      else if (eco <= 5.0) ecoPts = 30;
-      else if (eco <= 6.0) ecoPts = 20;
-      else if (eco <= 7.0) ecoPts = 10;
-      else if (eco > 14.0) ecoPts = -20;
-      else if (eco > 12.0) ecoPts = -15;
-      else if (eco > 11.0) ecoPts = -10;
-      else if (eco > 10.0) ecoPts = -5;
-      bowl += ecoPts;
-      if (ecoPts !== 0) logs.push(`Eco (${eco.toFixed(1)}): ${ecoPts > 0 ? '+' : ''}${ecoPts}`);
-    }
+                return { total: Math.round(bat + bowl + field + other), logs };
+            };
 
-    const totW = (p.wk_cs || 0) + (p.wk_lb || 0);
-    if (totW >= 7) { bowl += 50; logs.push(`7-Wkt Bonus: +50`); }
-    else if (totW >= 6) { bowl += 40; logs.push(`6-Wkt Bonus: +40`); }
-    else if (totW >= 5) { bowl += 30; logs.push(`5-Wkt Bonus: +30`); }
-    else if (totW >= 4) { bowl += 20; logs.push(`4-Wkt Bonus: +20`); }
-    else if (totW >= 3) { bowl += 10; logs.push(`3-Wkt Bonus: +10`); }
+            const processImages = async () => {
+                setLoading(true);
+                try {
+                    const parts = images.map(i => ({ inlineData: { mimeType: "image/png", data: i.split(',')[1] } }));
+                    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            contents: [{ parts: [
+                                { text: "Extract stats. ONLY include players VISIBLE in the image tables. Return JSON: [{name, runs, balls, fours, sixes, isOut, wk_cs, wk_lb, maidens, runs_conc, balls_bowled, catches, stumpings}]" },
+                                ...parts
+                            ] }],
+                            generationConfig: { responseMimeType: "application/json" }
+                        })
+                    });
+                    const data = await res.json();
+                    const list = JSON.parse(data.candidates[0].content.parts[0].text);
+                    setDetectedPlayers(list.map(p => ({ 
+                        ...p, playingXI: true, mom: false, matchResult: 'win'
+                    })));
+                } catch (e) { console.error(e); } finally { setLoading(false); }
+            };
 
-    if (p.hattrick) { bowl += 100; logs.push(`Hattrick: +100`); }
-    if (p.twoInTwo) { bowl += 25; logs.push(`2-in-2: +25`); }
+            const update = (i, f, v) => {
+                const n = [...detectedPlayers];
+                n[i][f] = v;
+                setDetectedPlayers(n);
+            };
 
-    // --- (iii) FIELDING ---
-    const cPts = (p.catches || 0) * 10;
-    const sPts = (p.stumpings || 0) * 15;
-    const rdPts = (p.runOutDirect || 0) * 25;
-    const riPts = (p.runOutInvolved || 0) * 10;
-    field += cPts + sPts + rdPts + riPts;
+            return (
+                <div className="max-w-xl mx-auto p-4 pb-32">
+                    {/* Header */}
+                    <header className="bg-white p-8 rounded-[3rem] shadow-2xl border border-slate-100 mb-8 text-center relative overflow-hidden">
+                        <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-blue-600 to-indigo-600"></div>
+                        <h1 className="text-3xl font-black italic tracking-tighter uppercase text-slate-900">
+                            Ultimate <span className="text-blue-600 underline decoration-indigo-200">Scorer Pro</span>
+                        </h1>
+                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] mt-2">Elite Tournament Management</p>
+                    </header>
+
+                    {/* Upload Section */}
+                    <section className="bg-white p-6 rounded-[2.5rem] shadow-xl border border-slate-100 mb-8">
+                        <div className="flex flex-wrap gap-3 mb-4">
+                            <label className="flex-1 min-w-[120px] h-24 rounded-3xl border-2 border-dashed border-slate-200 flex flex-col items-center justify-center cursor-pointer hover:bg-slate-50 transition-all">
+                                <input type="file" multiple hidden onChange={(e) => {
+                                    Array.from(e.target.files).forEach(f => {
+                                        const r = new FileReader();
+                                        r.onload = () => setImages(p => [...p, r.result]);
+                                        r.readAsDataURL(f);
+                                    });
+                                }} />
+                                <Icon name="camera" className="text-slate-300" />
+                                <span className="text-[8px] font-black uppercase text-slate-400 mt-2">Upload Tables</span>
+                            </label>
+                            {images.map((img, i) => (
+                                <div key={i} className="relative w-24 h-24 rounded-3xl overflow-hidden border border-slate-100">
+                                    <img src={img} className="w-full h-full object-cover" />
+                                    <button onClick={() => setImages(images.filter((_, idx) => idx !== i))} className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1"><Icon name="x" size={12}/></button>
+                                </div>
+                            ))}
+                        </div>
+                        <button disabled={images.length === 0 || loading} onClick={processImages} className="w-full py-5 rounded-[1.8rem] bg-slate-900 text-white font-black uppercase flex items-center justify-center gap-3 hover:bg-black disabled:opacity-30 transition-all shadow-xl italic tracking-tighter">
+                            {loading ? <Icon name="loader-2" className="animate-spin" /> : <Icon name="zap" className="fill-white" />}
+                            {loading ? "Analyzing..." : "Process Active Players"}
+                        </button>
+                    </section>
+
+                    {/* Player List */}
+                    <div className="space-y-4">
+                        {detectedPlayers.map((p, i) => {
+                            const { total, logs } = calculatePoints(p);
+                            const isExp = expanded === i;
+                            return (
+                                <div key={i} className={`bg-white rounded-[2.5rem] border-2 transition-all duration-500 overflow-hidden ${p.matchResult === 'win' ? 'border-emerald-50' : 'border-red-50'}`}>
+                                    <div className="p-6 flex items-center justify-between cursor-pointer" onClick={() => setExpanded(isExp ? null : i)}>
+                                        <div className="flex items-center gap-4">
+                                            <div className="w-14 h-14 rounded-2xl bg-slate-900 text-white flex items-center justify-center font-black text-2xl italic">
+                                                {p.name[0]}
+                                            </div>
+                                            <div>
+                                                <h3 className="font-black text-sm uppercase italic text-slate-800">{p.name}</h3>
+                                                <div className="text-[10px] font-bold text-slate-400 uppercase mt-1">Active Match Entry</div>
+                                            </div>
+                                        </div>
+                                        <div className="text-right">
+                                            <div className="text-4xl font-black text-blue-600 tracking-tighter leading-none">{total}</div>
+                                            <div className="text-[8px] font-black text-slate-300 uppercase">Points</div>
+                                        </div>
+                                    </div>
+
+                                    {isExp && (
+                                        <div className="px-6 pb-8 space-y-6">
+                                            <div className="grid grid-cols-2 gap-2">
+                                                <button onClick={() => update(i, 'matchResult', p.matchResult === 'win' ? 'loss' : 'win')} className={`py-4 rounded-2xl font-black text-[10px] uppercase ${p.matchResult === 'win' ? 'bg-emerald-500 text-white' : 'bg-red-500 text-white'}`}>Team {p.matchResult}</button>
+                                                <button onClick={() => update(i, 'mom', !p.mom)} className={`py-4 rounded-2xl font-black text-[10px] uppercase border ${p.mom ? 'bg-amber-400 text-white border-amber-400' : 'bg-slate-50 text-slate-400 border-slate-100'}`}>M.O.M</button>
+                                            </div>
+                                            
+                                            <div className="bg-slate-50 p-6 rounded-3xl grid grid-cols-4 gap-4">
+                                                {['runs', 'balls', 'fours', 'sixes'].map(f => (
+                                                    <div key={f}>
+                                                        <label className="text-[8px] font-black text-slate-400 uppercase mb-1 block">{f}</label>
+                                                        <input type="number" value={p[f]} onChange={e => update(i, f, +e.target.value)} className="w-full bg-white p-3 rounded-xl font-black text-center text-xs outline-none shadow-sm" />
+                                                    </div>
+                                                ))}
+                                            </div>
+
+                                            <div className="bg-slate-900 p-6 rounded-[2rem]">
+                                                <div className="space-y-1 mb-4 border-b border-white/10 pb-4">
+                                                    {logs.map((l, idx) => (
+                                                        <div key={idx} className="flex justify-between text-[10px] font-mono">
+                                                            <span className="text-slate-500">{l.split(':')[0]}</span>
+                                                            <span className="text-emerald-400 font-bold">{l.split(':')[1]}</span>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                                <div className="flex justify-between items-end">
+                                                    <span className="text-[8px] text-slate-500 font-black uppercase">Final Score</span>
+                                                    <span className="text-4xl font-black text-white italic tracking-tighter leading-none">{total}</span>
+                                                </div>
+                                            </div>
+
+                                            <button onClick={() => {
+                                                setSavedRecords([{name: p.name, points: total, mom: p.mom}, ...savedRecords]);
+                                                setDetectedPlayers(detectedPlayers.filter((_, idx) => idx !== i));
+                                            }} className="w-full py-5 bg-blue-600 text-white rounded-[1.5rem] font-black uppercase italic text-xs shadow-2xl shadow-blue-200">
+                                                Confirm & Save
+                                            </button>
+                                        </div>
+                                    )}
+                                </div>
+                            );
+                        })}
+                    </div>
+
+                    {/* Developer Profile Section */}
+                    <footer className="mt-16 pt-8 border-t border-slate-200">
+                        <div className="bg-gradient-to-br from-slate-900 to-indigo-950 p-8 rounded-[3rem] shadow-2xl text-center relative overflow-hidden group">
+                            <div className="absolute -right-10 -top-10 w-40 h-40 bg-blue-500/10 rounded-full blur-3xl group-hover:bg-blue-500/20 transition-all"></div>
+                            <h2 className="text-white font-black uppercase italic tracking-tighter text-xl mb-2">Developed By</h2>
+                            <p className="text-slate-400 text-[10px] uppercase font-bold tracking-[0.2em] mb-6">Innovative Solutions & Design</p>
+                            
+                            <a 
+                                href="https://profile-taupe-iota-89.vercel.app/" 
+                                target="_blank" 
+                                className="inline-flex items-center gap-3 bg-white px-8 py-4 rounded-2xl text-slate-900 font-black uppercase text-[11px] hover:scale-105 transition-transform shadow-xl"
+                            >
+                                <Icon name="external-link" size={14} className="text-blue-600" />
+                                View Developer Profile
+                            </a>
+                            
+                            <div className="mt-8 flex justify-center gap-6">
+                                <div className="text-center">
+                                    <div className="text-white font-black text-lg">V2.0</div>
+                                    <div className="text-slate-500 text-[8px] uppercase font-bold">Version</div>
+                                </div>
+                                <div className="w-px h-8 bg-white/10"></div>
+                                <div className="text-center">
+                                    <div className="text-white font-black text-lg">PRO</div>
+                                    <div className="text-slate-500 text-[8px] uppercase font-bold">Tier</div>
+                                </div>
+                            </div>
+                        </div>
+                    </footer>
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
+
     if (cPts) logs.push(`Catches: +${cPts}`);
     if (sPts) logs.push(`Stumpings: +${sPts}`);
     if (rdPts) logs.push(`RO Direct: +${rdPts}`);
